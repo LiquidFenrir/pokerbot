@@ -58,15 +58,10 @@ def check_straight(cards):
                     pass
                 else:
                     straights.append([])
-                straights[-1].append(card)
-                oldcard = card
-            else:
-                oldcard = card
-                straights[-1].append(card)
+            oldcard = card
+            straights[-1].append(card)
 
         for straight in straights:
-            straight = list(set(straight))
-            straight.sort(key=to_number)
             while len(straight) > 5:
                 straight.pop(0)
             if len(straight) == 5:
