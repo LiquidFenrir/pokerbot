@@ -242,15 +242,17 @@ class Game():
             cleaned = [total for total in totals if total not in common_totals]
             print(cleaned)
 
-            for clean in cleaned:
-                value, combination_type = get_ext_value(clean)
+            try:
+                value, combination_type = get_ext_value(cleaned[0])
                 if value > top_value:
                     top_value = value
                     winner = player
-                    await send(ctx, f"Player {player.name} had a **{combination_type}**.")
-                    break
+                await send(ctx, f"Player {player.name} had a **{combination_type}**.")
+            except Indexerror:
+                await send(ctx, f"Player {player.name} had **Nothing**.")
 
-        return top_value
+        print(hex(top_value))
+        return winner
 
     async def do_showdown(self, ctx):
         winner = self.active_players[0]
@@ -274,12 +276,9 @@ class Game():
 
             active_player = self.active_players[self.active_player_id]
             self.active_player_id += 1
-            try:
-                while active_player.money == 0 or (self.top_bet == active_player.total_bet and not self.top_bet == 0):  # don't ask those that went all in, or have already matched the top bet to bet
-                    active_player = self.active_players[self.active_player_id]
-                    self.active_player_id += 1
-            except IndexError as e:
-                raise e("WTF BRO")
+            while active_player.money == 0 or (self.top_bet == active_player.total_bet and not self.top_bet == 0):  # don't ask those that went all in, or have already matched the top bet to bet
+                active_player = self.active_players[self.active_player_id]
+                self.active_player_id += 1
 
             await send(ctx, f"It's {active_player.mention}'s turn to bet!")
             if self.top_bet:
