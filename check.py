@@ -39,6 +39,49 @@ def to_number(card):
     else:
         return FACE_CARDS[card[0]]
 
+def get_ext_value(total):
+    value, combination_type, combination = total
+    try:
+        combination[0].sort(key=to_number)
+    except:
+        combination.sort(key=to_number)
+
+    extras = []
+    if value == 0:  # Nothing, so we use the highest card
+        extras.append(to_number(combination[-1]))
+    elif value == 1:  # High card
+        extras.append(to_number(combination[0]))
+    elif value == 2:  # Pair
+        extras.append(to_number(combination[0][0]))
+    elif value == 3:  # Two pairs
+        extras.append(to_number(combination[0][0]))
+        extras.append(to_number(combination[1][0]))  # first = higher in rank, due to how pairs are generated
+    elif value == 4:  # Three of a kind
+        extras.append(to_number(combination[0][0]))
+    elif value == 5:  # Straight
+        extras.append(to_number(combination[-1]))
+    elif value == 6:  # Flush
+        extras.append(to_number(combination[-1]))
+    elif value == 7:  # Full house
+        triplet = to_number(combination[0][2])  # middle one is always part of the triplet
+        double = to_number(combination[0][0])
+        if double == triplet:
+            extras.append(to_number(combination[0][-1]))
+        else:
+            extras.append(double)
+        extras.append(triplet)
+    elif value == 8:  # Four of a kind
+        extras.append(to_number(combination[0][0]))
+    elif value == 9:  # Straight flush
+        extras.append(to_number(combination[-1]))
+
+    value <<= 8
+    for i, extra in enumerate(extras):
+        value |= int(extra) << (len(extras)-i-1)*4
+
+    print(hex(value))
+    return (value, combination_type)
+
 def check_straight(cards):
     if len(cards) >= 5:
         low_ace = list(cards)
@@ -137,6 +180,8 @@ def check_combinations(common, hand):
     cards = common + hand
     cards.sort(key=to_number)
 
+    combinations = []
+
     flushes = {color: [] for color in colors}
     for color in colors:
         for card in cards:
@@ -149,40 +194,42 @@ def check_combinations(common, hand):
         straight_flush = check_straight(v)
         if len(straight_flush) == 5 and straight_flush == v:
             if straight_flush[-1][0] == "A":
-                return (10, "Royal flush", straight_flush)
+                combinations.append((10, "Royal flush", straight_flush))
             else:
-                return (9, "Straight flush", straight_flush)
+                combinations.append((9, "Straight flush", straight_flush))
 
     four_of_a_kind = [list(four) for four in fours if four.issubset(cards)]
     if four_of_a_kind:
-        return (8, "Four of a kind", four_of_a_kind)
+        combinations.append((8, "Four of a kind", four_of_a_kind))
 
     full_houses = [list(full) for full in fulls if full.issubset(cards)]
     if full_houses:
-        return (7, "Full house", full_houses)
+        combinations.append((7, "Full house", full_houses))
 
     for k, flush in flushes.items():
         if len(flush) >= 5:
-            return (6, "Flush", flush)
+            combinations.append((6, "Flush", flush))
 
     straight = check_straight(cards)
     if straight:
-        return (5, "Straight", straight)
+        combinations.append((5, "Straight", straight))
 
     three_of_a_kind = [list(three) for three in threes if three.issubset(cards)]
     if three_of_a_kind:
-        return (4, "Three of a kind", three_of_a_kind)
+        combinations.append((4, "Three of a kind", three_of_a_kind))
 
     pairs = [list(double) for double in doubles if double.issubset(cards)]
     while len(pairs) > 2:
         pairs.pop(0)
     if len(pairs) == 2:
-        return (3, "Two pairs", pairs)
+        combinations.append((3, "Two pairs", pairs))
     elif len(pairs) == 1:
-        return (2, "Pair", pairs)
+        combinations.append((2, "Pair", pairs))
 
     high_cards = list(highs.intersection(hand))
     if high_cards:
-        return (1, "High card", high_cards)
+        combinations.append((1, "High card", high_cards))
     else:
-        return (0, "Nothing", [])
+        combinations.append((0, "Nothing", [cards[1]]))
+
+    return combinations

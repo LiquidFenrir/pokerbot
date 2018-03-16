@@ -1,17 +1,16 @@
-import yaml
+from yaml import safe_load as load_config
 
 import discord
 from discord.ext import commands
-import logging
 
 import random, time
-from check import check_combinations, to_number, gen_lists
+from check import check_combinations, to_number, gen_lists, get_ext_value
 
 alone = True
 
 try:
     with open("config.yaml") as c:
-        config = yaml.safe_load(c)
+        config = load_config(c)
 except FileNotFoundError:
     exit("Config file not found.")
 
@@ -232,65 +231,26 @@ class Game():
         self.reset_bets()
         self.state = RIVER
 
-    def get_ext_value(total):
-        value, combination_type, combination = total
-        print(total)
-        try:
-            combination[0].sort(key=to_number)
-        except:
-            combination.sort(key=to_number)
-        print(combination)
-
-        extras = []
-        if value == 1:  # High card
-            extras.append(to_number(combination[0]))
-        elif value == 2:  # Pair
-            extras.append(to_number(combination[0][0]))
-        elif value == 3:  # Two pairs
-            extras.append(to_number(combination[0][0]))
-            extras.append(to_number(combination[1][0]))  # first = higher in rank, due to how pairs are generated
-        elif value == 4:  # Three of a kind
-            extras.append(to_number(combination[0][0]))
-        elif value == 5:  # Straight
-            extras.append(to_number(combination[-1]))
-        elif value == 6:  # Flush
-            extras.append(to_number(combination[-1]))
-        elif value == 7:  # Full house
-            triplet = to_number(combination[0][2])  # middle one is always part of the triplet
-            double = to_number(combination[0][0])
-            if double == triplet:
-                extras.append(to_number(combination[0][-1]))
-            else:
-                extras.append(double)
-            extras.append(triplet)
-        elif value == 8:  # Four of a kind
-            extras.append(to_number(combination[0][0]))
-        elif value == 9:  # Straight flush
-            extras.append(to_number(combination[-1]))
-
-        value <<= 8
-        for i, extra in enumerate(extras):
-            value |= int(extra) << (len(extras)-i-1)*4
-
-        print(hex(value))
-        return (value, combination_type)
-
     async def find_winner(self, ctx):
         winner = None
         top_value = 0
-        common_total = check_combinations(self.common_cards, [])
+        common_totals = check_combinations(self.common_cards, [])
+        print(common_totals)
         for player in self.active_players:
-            total = check_combinations(self.common_cards, player.hand)
-            if total == common_total:
-                total = check_combinations([], player.hand)
+            totals = check_combinations(self.common_cards, player.hand)
+            print(totals)
+            cleaned = [total for total in totals if total not in common_totals]
+            print(cleaned)
 
-            value, combination_type = get_ext_value(total)
+            for clean in cleaned:
+                value, combination_type = get_ext_value(clean)
+                if value > top_value:
+                    top_value = value
+                    winner = player
+                    await send(ctx, f"Player {player.name} had a **{combination_type}**.")
+                    break
 
-            if value > top_value:
-                top_value = value
-                winner = player
-            await send(ctx, f"Player {player.name} had a **{combination_type}**.")
-        return winner
+        return top_value
 
     async def do_showdown(self, ctx):
         winner = self.active_players[0]
@@ -319,7 +279,7 @@ class Game():
                     active_player = self.active_players[self.active_player_id]
                     self.active_player_id += 1
             except IndexError as e:
-                raise e
+                raise e("WTF BRO")
 
             await send(ctx, f"It's {active_player.mention}'s turn to bet!")
             if self.top_bet:
@@ -332,15 +292,22 @@ class Game():
                     await self.next_player(ctx)
                     return
 
-            if self.state == PRE_FLOP:
+            if alone:
                 await self.do_flop(ctx)
-            elif self.state == FLOP:
                 await self.do_turn(ctx)
-            elif self.state == TURN:
                 await self.do_river(ctx)
-            elif self.state == RIVER:
                 await self.do_showdown(ctx)
                 return
+            else:
+                if self.state == PRE_FLOP:
+                    await self.do_flop(ctx)
+                elif self.state == FLOP:
+                    await self.do_turn(ctx)
+                elif self.state == TURN:
+                    await self.do_river(ctx)
+                elif self.state == RIVER:
+                    await self.do_showdown(ctx)
+                    return
 
             self.active_player_id = 0
             await self.next_player(ctx)
@@ -506,12 +473,6 @@ async def allin(ctx):
                 await game.next_player(ctx)
     else:
         await send(ctx, "Game not started.")
-
-logger = logging.getLogger('discord')
-logger.setLevel(logging.WARNING)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
 
 gen_lists()
 bot.run(config['token'])
