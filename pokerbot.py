@@ -248,7 +248,7 @@ class Game():
                     top_value = value
                     winner = player
                 await send(ctx, f"Player {player.name} had a **{combination_type}**.")
-            except Indexerror:
+            except IndexError:
                 await send(ctx, f"Player {player.name} had **Nothing**.")
 
         print(hex(top_value))

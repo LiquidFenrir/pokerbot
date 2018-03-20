@@ -229,7 +229,7 @@ def check_combinations(common, hand):
     high_cards = list(highs.intersection(hand))
     if high_cards:
         combinations.append((1, "High card", high_cards))
-    else:
-        combinations.append((0, "Nothing", [cards[1]]))
+
+    combinations.append((0, "Nothing", [cards[-1]]))
 
     return combinations
