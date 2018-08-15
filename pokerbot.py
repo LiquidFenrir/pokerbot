@@ -421,7 +421,7 @@ async def bet(ctx, amount: int):
 
 @bot.command()
 async def call(ctx):
-    """Bet coins. Pretty straightforward"""
+    """Bet just enough coins to match the last bet"""
     if game.started:
         if ctx.message.author == active_player.player:
             amount = game.top_bet - active_player.total_bet
