@@ -48,7 +48,7 @@ def format_cards(cards):
         "Queen": 0xD,
         "King": 0xE,
     }
-    formatted = ""
+    formatted = []
     for card in cards:
         uni = 0
         for k, v in colors.items():
@@ -59,8 +59,8 @@ def format_cards(cards):
             if k in card:
                 uni += v
                 break
-        formatted += f"{chr(uni)} {card}\n"
-    return formatted
+        formatted.append(f"{chr(uni)} {card}")
+    return "\n".join(formatted)
 
 class Player:
     def __init__(self, player: discord.User):
