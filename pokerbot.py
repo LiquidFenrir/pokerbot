@@ -17,10 +17,14 @@ except FileNotFoundError:
 bot = commands.Bot(command_prefix=config['prefix'],
                    description=config['description'])
 
+async def set_game(player_amount):
+    await bot.change_presence(activity=discord.Game(name=f"Poker with {player_amount} player{' ' if player_amount == 1 else 's'} | {config['prefix']}help"))
+
 @bot.event
 async def on_ready():
     print('Logged in as')
     print(bot.user.name)
+    await set_game(0)
 
 async def send(ctx, msg):
     print(msg)
@@ -148,6 +152,7 @@ class Game():
         if alone or not player in self.players:
             self.players.append(player)
             await send(ctx, f"Player {player.name} added to game!")
+            await set_game(len(self.players))
         else:
             await send(ctx, f"Player {player.name} already scheduled for game!")
 
@@ -159,11 +164,11 @@ class Game():
         else:
             self.players.remove(player)
             await send(ctx, f"Player {player.name} removed from game!")
+            await set_game(len(self.players))
 
     async def end_game(self):
-        self.started = False
-        self.players.clear()
-        self.state = WAITING_FOR_PLAYERS
+        self.__init__()
+        await set_game(0)
 
     async def take_blinds(self, ctx):
         small_blind = big_blind = None
