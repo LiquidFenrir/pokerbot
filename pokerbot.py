@@ -6,7 +6,7 @@ from discord.ext import commands
 import random, time
 from check import check_combinations, to_number, gen_lists, get_ext_value
 
-alone = True
+alone = False
 
 try:
     with open("config.yaml") as c:
